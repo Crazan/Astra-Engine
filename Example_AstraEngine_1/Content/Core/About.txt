@@ -1,0 +1,5 @@
+Эта папка содержит описание модели данных. В файлах xml можно описать
+все объекты 3D/2D приложения или игры.
+
+This folder contains a description of the data model. In xml files you can describe
+all objects 3D / 2D applications or game.

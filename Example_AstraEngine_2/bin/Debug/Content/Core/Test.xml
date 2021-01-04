@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Used names (commands) for the file: Name, Content, ParentName, ApplyLib, Parts (для сцены)  -->
+<!-- Versions of the generic object: MiscDef, Thing, ThingDef, Instance, Interface, Cursor, Scene, Localization или любой уникальный тип -->
+<!-- Content commands (Content): -->
+<!-- Model, Sprite, ColorTexture, NormalTexture, RoughnessTexture, SpecularTexture, EmissiveTexture, MetallicTexture, Sound, -->
+<!-- Name, NameMesh, Offset, Scale, Color ({R:G:B:A:}|{H:S:V:}|#FFFFFF|123455|Red), -->
+<!-- ReplaceColor (MinHUE, MaxHUE, MinSaturate, MaxSaturate), -->
+<!-- Material, AmbientLightColor, AmbientLightIntensity, DirectLightColor (обязателен и идет первым), DirectLightIntensity, DirectLightPosition -->
+<!-- EmissiveIntensity, PowBump, EnableNormalsOpenGL, SpeedAnimation, Enable, EnableAnimation, LoopAnimation, EnableAlphaClick -->
+<body>
+<!-- ************************************************************************************* -->
+  <!-- Generic object -->
+  <Thing>
+    <!-- Unique name - links to xml documents can go through it -->
+    <Name>MyTextObject</Name>
+    <!-- Description of geometric content -->
+    <Content>
+      <Offset>{X:20 Y:20 Z:0}</Offset>
+      <Sprite>DiffuseMap.jpg</Sprite>
+      <Font>Arial</Font>
+      <FontSize>40</FontSize>
+      <FontColor>Red</FontColor>
+      <Text>My test srite with text</Text>
+    </Content>
+  </Thing>  
+<!-- ************************************************************************************* -->
+  <!-- Generic object -->
+  <Thing>
+    <!-- Unique name - links to xml documents can go through it -->
+    <Name>My3DTextureAnimatedObject</Name>
+    <!-- Description of geometric content -->
+    <Content>
+      <Offset>{X:0 Y:0 Z:-200}</Offset>
+      <Scale>{X:0.2 Y:0.2 Z:0.2}</Scale>
+      <ColorTexture>AnimationTest.gif</ColorTexture>
+      <SpeedAnimation>0.1</SpeedAnimation>
+      <EnableAnimation>true</EnableAnimation>
+    </Content>
+    <!-- Arbitrary parameters that will appear in the universal part -->
+    <MyTestVariable>2</MyTestVariable>
+    <!-- Script binding. The script will only be applied to this object -->
+    <ApplyLib> 
+      <li>MyTestScript</li>
+     </ApplyLib>
+  </Thing>
+<!-- ************************************************************************************* -->
+  <!-- Generic object -->
+  <Thing>
+    <!-- Unique name - links to xml documents can go through it -->
+    <Name>My3DModelObject</Name>
+    <!-- Description of geometric content -->
+    <Content>
+      <Offset>{X:100 Y:100 Z:-400}</Offset>
+      <Model>ModelTest.FBX</Model>            
+      <ColorTexture>DiffuseMap.jpg</ColorTexture>
+      <NormalTexture>NormalMap.jpg</NormalTexture>
+      <!-- <RoughnessTexture>exp_roughness.png</RoughnessTexture> -->
+      <!-- <MetallicTexture>exp_metallic.png</MetallicTexture> -->     
+      <AmbientLightColor>White</AmbientLightColor>
+      <AmbientLightIntensity>0.2</AmbientLightIntensity>
+      <DirectLightColor>White</DirectLightColor>
+      <DirectLightIntensity>0.4</DirectLightIntensity>
+      <DirectLightPosition>{X:100 Y:100 Z:1000}</DirectLightPosition>
+      <Material>PlasticGloss</Material>
+    </Content>
+  </Thing>
+<!-- ************************************************************************************* -->
+</body>

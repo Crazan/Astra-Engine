@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Файл базовой конфинурации окна -->
+<body>
+  <InitializeEngine>
+    <InfoNode>
+      <Program>AstraEngine main initialize file. Window adjustment</Program>
+      <VersionProgram>1.1.0.0</VersionProgram>
+      <VersionFile>1.1.0.0</VersionFile>
+    </InfoNode>
+    <DataNode>
+      <!-- Высота окна (работает только в оконном режиме) -->
+      <WindowHeight>564</WindowHeight>
+      <!-- Ширина окна (работает только в оконном режиме) -->
+      <WindowWidth>784</WindowWidth>
+      <!-- Текущий монитор -->
+      <CurrentMonitor>0</CurrentMonitor>
+      <!-- Целевое фпс (если EnableVSYNC = false то бесконечное) -->
+      <TargetFPS>60</TargetFPS>
+      <!-- Вертикальная синхронизация -->
+      <EnableVSYNC>True</EnableVSYNC>
+      <!-- Включить/выключить отображение мыши -->
+      <VisibleMouse>True</VisibleMouse>
+      <!-- Разрешить изменять размеры окна пользователю -->
+      <EnableAllowUserResizing>True</EnableAllowUserResizing>
+      <!-- Позиция окна -->
+      <PositionWindow>{X:-1 Y:-1}</PositionWindow>
+      <!-- Тип окна: Window, FullBorderlessWindow, FullScreen -->
+      <TypeWindow>Window</TypeWindow>
+      <!-- Ориентация окна: Default, Down, Portrait, PortraitDown -->
+      <OrientationDisplay>Default</OrientationDisplay>
+      <!-- Закрывать окно по команде -->
+      <UseAltF4>True</UseAltF4>
+      <!-- Имя в заголовке окна -->
+      <Title>Example Astra Engine</Title>
+    </DataNode>
+  </InitializeEngine>
+</body>

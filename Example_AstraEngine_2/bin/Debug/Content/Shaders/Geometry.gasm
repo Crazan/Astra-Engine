@@ -1,0 +1,557 @@
+// Standart texture 3D shader
+// Vertex shader
+#VertexShader Geometry
+#version 330 core
+// Include Data
+ 
+// Data from CPU
+// Vertexs of model
+in vec3 Vertex;
+// Normals of model
+in vec3 Normal;
+// Texture coordinate
+in vec2 UV;
+// Camera position
+uniform vec3 PositionCamera;
+// Data from Vertex GPU to Fragment GPU
+// Output Vertexs for fragment shader
+out vec3 GPU_Vertex;
+// Output Normal for fragment shader
+out vec3 GPU_Normal;
+// Output texture coordinate for fragment shader
+out vec2 GPU_UV;
+// Output View for fragment shader
+out vec3 GPU_View;
+// Output matrix World
+out mat3 GPU_World;
+// Output CubeTexCoord for fragment shader
+out vec3 GPU_CubeTexCoord;
+
+ 
+// Matrix world
+uniform mat4 World; 
+// Matrix camera
+uniform mat4 View;
+// Matrix projection          
+uniform mat4 Projection;
+
+// Main
+void main()
+{
+	// Compute vertex
+	vec4 worldPosition = World * vec4(Vertex, 1.0f);
+	vec4 viewPosition = View * worldPosition;
+	gl_Position = Projection * viewPosition;
+	GPU_Vertex = vec3(gl_Position[0], gl_Position[1], gl_Position[2]);
+	// Set params
+	GPU_World = mat3(World);
+	GPU_UV = UV;
+	GPU_View = vec3(worldPosition[0], worldPosition[1], worldPosition[2]);
+	// Compute Normal for TBN matrix and normal mapping
+	GPU_Normal = normalize(mat3(World) * normalize(Normal));
+    // Compute mirror
+	vec3 viewDirection = vec3(worldPosition - vec4(PositionCamera, 1.0));
+	GPU_CubeTexCoord = normalize(reflect(viewDirection, normalize(Normal)));
+}
+// End
+#EndShader
+//**********************************************************
+#FragmentShader Geometry
+#version 330 core
+// Include Data
+ 
+#extension GL_NV_shadow_samplers_cube : enable
+// Data from Vertex GPU to Fragment GPU
+// Output Vertexs for fragment shader
+in vec3 GPU_Vertex;
+// Output Normal for fragment shader
+in vec3 GPU_Normal;
+// Output texture coordinate for fragment shader
+in vec2 GPU_UV;
+// Output View for fragment shader
+in vec3 GPU_View;
+// Output matrix World
+in mat3 GPU_World;
+// Output CubeTexCoord for fragment shader
+in vec3 GPU_CubeTexCoord;
+// Data textures from CPU
+// Texture color maps (max = 3)
+uniform sampler2D ColorMap_1;
+uniform sampler2D ColorMap_2;
+uniform sampler2D ColorMap_3;
+// Texture normal map
+uniform sampler2D NormalMap;
+// Texture Glossiness map. Light scattering texture map
+// - the darker the less glare and the more scattering on
+// the surface of the material 
+uniform sampler2D SpecularMap;
+// Texture Roughness map
+uniform sampler2D RoughnessMap;
+// Texture Metallic map
+uniform sampler2D MetallicMap;
+// Texture Emissive map
+uniform sampler2D EmissiveMap;
+// Texture Reflect map
+uniform samplerCube ReflectMap;
+// Special flags for control textures
+// Count color maps
+uniform int Count_ColorMap;
+// Use normal map
+uniform int Enable_NormalMap;
+// Use material map
+uniform int Enable_SpecularMap;
+// Use roughness map
+uniform int Enable_RoughnessMap;
+// Use  metallic map
+uniform int Enable_MetallicMap;
+// Use  Emissive map
+uniform int Enable_EmissiveMap;
+// Use reflect map
+uniform int Enable_ReflectMap;
+// Enable invert normal map
+uniform int Inverted_NormalMap;
+// Out color on screen
+layout(location = 0) out vec4 fragColor;
+
+ 
+// Use mask on HUE
+uniform int EnableReplaceColor = 0;
+// Value on move HUE
+uniform int DeltaHUE = 0;
+// Value minimal border HUE
+uniform int HUEMaskMin = 0;
+// Valur maximal border HUE
+uniform int HUEMaskMax = 0;
+// Maximal border Saturate 
+uniform int SaturateMaskMax = 0;
+// Minimal border Saturate 
+uniform int SaturateMaskMin = 0;
+
+ 
+// Enable color fill
+uniform int Enable_ColorFill;
+// Fill color
+uniform vec4 ColorFill;
+// Transparency 
+uniform float Alpha;
+// The degree of indentation of the relief 0 ... 10 less
+uniform float PowBump;
+// Material settings. Flare
+uniform float SpecularPower;
+// Model surface roughness
+uniform float RoughnessAll;
+// Material settings. Additional color of light scattering on the model
+uniform vec4 EmissiveColor;
+// Material settings. Light intensity
+uniform float EmissiveIntensity = 1;
+// Mixing Light and base color
+uniform float EmissiveDefault = 0.1;
+// Material refractive index
+uniform float IOR_Material = 5.43788f;
+
+ 
+// Light
+// Number of Light Sources
+uniform int CountLights = 0;
+// Omnidirectional Light Intensity
+uniform float AmbientIntensity = 0;
+// Color of non-directional light
+uniform vec4 AmbientColor;
+// Directional Light Intensity
+uniform float DiffuseIntensity[4];
+// Color of directional light
+uniform vec4 DiffuseColor[4];
+// Highlight color
+uniform vec4 SpecularColor[4];
+// Light source position
+uniform vec3 PositionLight[4];
+// Camera position
+uniform vec3 PositionCamera;
+
+// Include fuctions
+ 
+//**********************************************************************************
+// Compute HUE for color
+float ComputeHUE(vec4 color)
+{
+	//
+	float R = color[0];
+	float G = color[1];
+	float B = color[2];
+	//
+	float MinValue = min(min(R, G), B);
+	float MaxValue = max(max(R, G), B);
+	//
+	float HUE = 0.0f;
+	if (R > G && R > B)
+	{
+		HUE = (G - B) / (MaxValue - MinValue);
+	}
+	if (G > R && G > B)
+	{
+		HUE = 2.0 + (B - R) / (MaxValue - MinValue);
+	}
+	if (B > R && B > G)
+	{
+		HUE = 4.0 + (R - G) / (MaxValue - MinValue);
+	}
+	//
+	HUE = HUE * 60.0f;
+	//
+	if (HUE < 0) HUE = HUE + 360.0f;
+	//
+	return HUE;
+}
+//**********************************************************************************
+// Compute Saturate for color
+float ComputeSaturate(vec4 color)
+{
+	//
+	float R = color[0];
+	float G = color[1];
+	float B = color[2];
+	//
+	float MinValue = min(min(R, G), B);
+	float MaxValue = max(max(R, G), B);
+	// 
+	float Saturate = 0.0f;
+	if (MaxValue > 0)
+	{
+		Saturate = (MaxValue - MinValue) / MaxValue;
+		Saturate = Saturate * 100.0f;
+	}
+	//
+	return Saturate;
+}
+//**********************************************************************************
+// Apply DeltaHue
+vec3 ApplyDeltaHue(vec3 aColor, int aHue)
+{
+	float angle = aHue / 57.3f;
+	vec3 k = vec3(0.57735, 0.57735, 0.57735);
+	float cosAngle = cos(angle);
+	// Rodrigues' rotation formula
+	return aColor * cosAngle + cross(k, aColor) * sin(angle) + k * dot(k, aColor) * (1 - cosAngle);
+}
+//*******************************************************************************
+
+ 
+//**********************************************************************************
+struct ColorPair
+{
+	vec3 Diffuse;
+	vec3 Specular;
+	vec3 Ambient;
+};
+//*******************************************************************************
+// Get sign value
+float Sign(float Value)
+{
+	if (Value > 0) return 1;
+	return -1;
+}
+//*******************************************************************************
+// Calculation of the Fresnel coefficient
+// Normal, View Vector, Medium Refractive Index
+float FrenelCalc(vec3 N, vec3 V, float IOR)
+{
+	// Get the cosine of the angle of incidence
+	float CosAngle = dot(V, N) / max(length(N) * length(V), 1.0e-7);
+	// Calculate the coefficient value using the simplified Fresnel formula
+	return 1 / pow(1 + CosAngle, IOR);
+}
+//*******************************************************************************
+// Compute light
+// E: View matrix
+// N: Normal vector     
+ColorPair ComputeLights(vec4 Color, vec4 ColorMetallic, vec3 E, vec3 N, vec3 Normal,
+	                    float PowGlossiness,
+	                    float PowMetallica, float Roughness, float IOR)
+{
+	ColorPair result;
+	// 1. Compute metallic
+	float diffuseAlbedo = 1.0f;
+	float ambientAlbedo = 1.0f;
+	float specularAlbedo = 1.0f;
+	float IOR_Current = IOR;
+	if (Enable_MetallicMap == 1)
+	{
+		diffuseAlbedo = mix(1.0f, 0.3f, PowMetallica);
+		specularAlbedo = mix(1.0f, 1.2f, PowMetallica);
+		ambientAlbedo = mix(1.0f, 0.55f, PowMetallica);
+		IOR_Current = mix(IOR, 2.25f, PowMetallica);
+	}
+	// Set your own glow
+	result.Ambient = AmbientColor.xyz * AmbientIntensity * ambientAlbedo;
+	result.Diffuse = vec3(0, 0, 0);
+	result.Specular = vec3(0, 0, 0);
+	// 2. Direction to camera
+	vec3 V = normalize(PositionCamera - E);
+	// 3. Compute Fresnel coefficient
+	float Frenel = FrenelCalc(N, V, IOR_Current);
+	// 4. Compute influence Roughness
+	// Get radius from roughness coefficient 0 - completely smooth
+	float InvertRoughness = Roughness;
+	float R2 = InvertRoughness * InvertRoughness;
+	R2 = max(0.000001f, R2);
+	// Specular
+	float SpecularPower_Current = SpecularPower;
+	if (Enable_RoughnessMap == 1)
+	{
+		SpecularPower_Current = 1.0f;
+	}
+	// For a light source
+	for (int I = 0; I < CountLights; I++)
+	{
+		// Direction of light to an object
+		vec3 L = normalize(PositionLight[I] - E);
+		// Half look
+		vec3 H = normalize(L + V);
+		// Ggx distribution. This function describes the possible deviation of the normal to the surface from the ideal normal N from the degree of surface roughness.
+		float ALF = acos(dot(N, H));
+		float D = 250.0f * (1.0f - R2) * exp(-(ALF*ALF) / (R2));
+		// Shielding factor Sign(dot(N, V));
+		float G1 = Sign(dot(N, H));
+		float G2 = Sign(dot(N, V));
+		// Scattered light coefficient (? use Normal for coorect dark side)
+	    float K1 = max(0, G1 * max(0, dot(N, L))) * DiffuseIntensity[I];
+		float K2 = max(0, G2 * max(0, dot(N, L))) * DiffuseIntensity[I];
+		// Compute specular factor 
+		float GS = pow(max(0, dot(H, N) * D * Frenel), SpecularPower_Current) / (max(dot(N, V), 1.0e-7) * 3.14f);
+		// Metal Flare Accounting 
+	    vec4 SC = mix(SpecularColor[I], mix(Color, ColorMetallic, 0.33f), PowMetallica / 1.7f);
+		vec3 TransformSpecularColor = vec3(SC[0], SC[1], SC[2]);
+		// Calculation of light sources  
+		result.Diffuse =  result.Diffuse + K1 * max(0.5f, dot(N, V)) * diffuseAlbedo *
+			              vec3(DiffuseColor[I][0], DiffuseColor[I][1], DiffuseColor[I][2]);
+
+		result.Specular = result.Specular + GS * K2 * max(0.02f, dot(N, V)) * specularAlbedo *
+			              TransformSpecularColor * PowGlossiness;
+	}
+	return result;
+}
+//*******************************************************************************
+
+ 
+//**********************************************************************************
+// Compute Tangents (for only fragment shader)
+vec3 ComputeTangents(vec3 PositionPolygon, vec2 PositionUV)
+{
+	vec3 pos_dx = dFdx(PositionPolygon);
+	vec3 pos_dy = dFdy(PositionPolygon);
+	// derivations of the texture coordinate
+	vec2 texC_dx = dFdx(PositionUV);
+	vec2 texC_dy = dFdy(PositionUV);
+	// tangent vector and binormal vector
+	vec3 t = texC_dy.y * pos_dx - texC_dx.y * pos_dy;
+	return t;
+}
+//**********************************************************************************
+// Compute Binormals (for only fragment shader)
+vec3 ComputeBinormals(vec3 InputNormal, vec3 InputTangents)
+{
+	return normalize(cross(InputNormal, InputTangents));
+}
+//*******************************************************************************
+
+// Main function
+void main()
+{
+	// 1. Compute colormap
+	 
+// Not find color map. Start color
+vec4 Color = vec4(0, 0, 0, 0);
+// One color map
+if (Count_ColorMap > 0)
+{
+	Color = texture(ColorMap_1, GPU_UV);
+}
+if (Count_ColorMap > 1)
+{
+	vec4 C2 = texture(ColorMap_2, GPU_UV);
+	if (C2[3] > 0)
+	{
+		Color = vec4(C2[0], C2[1], C2[2], Color[3]);
+	}
+}
+if (Count_ColorMap > 2)
+{
+	vec4 C3 = texture(ColorMap_3, GPU_UV);
+	if (C3[3] > 0)
+	{
+		Color = vec4(C3[0], C3[1], C3[2], Color[3]);
+	}
+}
+
+    // 2. Set mask HUE
+	 
+// HUE MASK
+if (EnableReplaceColor == 1)
+{
+	// Get Hue
+	float HUE = ComputeHUE(Color);
+	// Get Saturate
+	float Saturate = ComputeSaturate(Color);
+	// Apply 
+	if (HUE > HUEMaskMin && HUE < HUEMaskMax &&
+		Saturate > SaturateMaskMin && Saturate < SaturateMaskMax)
+	{
+		vec3 M = ApplyDeltaHue(vec3(Color[0], Color[1], Color[2]), DeltaHUE);
+		Color = vec4(M[0], M[1], M[2], Color[3]);
+	}
+}
+
+	// 3. Set color matrial 
+	 
+// Mixing color
+Color = vec4(Color[0] * (ColorFill[0] / 255.0f), Color[1]*(ColorFill[1] / 255.0f),
+             Color[2] * (ColorFill[2] / 255.0f), Color[3]*(ColorFill[3] / 255.0f));
+// Fill color
+if(Enable_ColorFill == 1)
+{
+	Color = ColorFill / 255.0f;
+}
+// Transparency
+Color = vec4(Color[0], Color[1], Color[2], Color[3] * Alpha);
+
+    // 4. Compute normal map
+	 
+// Start normal - transform normal to space 
+vec3 FragmentNormal = GPU_Normal;
+// Get normal from map
+if (Enable_NormalMap == 1)
+{
+	vec4 ColorNormal = texture(NormalMap, GPU_UV);
+	// Control
+    if(length(ColorNormal) > 0.01f)
+	{
+		// OpenGL mode
+		if (Inverted_NormalMap == 1)
+			ColorNormal = vec4(ColorNormal[0], 1 - ColorNormal[1], ColorNormal[2], 1);
+		FragmentNormal = 2.0f * vec3(ColorNormal[0], ColorNormal[1], ColorNormal[2]) - 1.0f;
+		// Use intensity normal map
+		FragmentNormal.xy *= PowBump;
+		if (PowBump < 0)
+		{
+			FragmentNormal.y = -FragmentNormal.y;
+		}
+		// Compute mat TBN 
+		vec3 T = normalize(GPU_World * ComputeTangents(GPU_View, GPU_UV));
+		vec3 B = ComputeBinormals(GPU_Normal, T);
+		mat3 TBN = mat3(T, B, GPU_Normal);
+		// Transform on mat TBN
+		FragmentNormal = normalize(TBN * normalize(FragmentNormal));
+	}
+}
+
+	// 5. Compute specular map
+	 
+// Compute Specular on map
+float PowGlossiness = 1.0;
+if (Enable_SpecularMap == 1)
+{
+	vec4 Gloss = texture(SpecularMap, GPU_UV);
+	if (Gloss[3] > 0.001f)
+	{
+		PowGlossiness = (Gloss[0] + Gloss[1] + Gloss[2]) / 3.0;
+	}
+}
+
+	// 6. Compute roughness map
+	 
+// Compute Roughness on map
+float Roughness = RoughnessAll;
+float RoughnessAlfa = 0;
+if (Enable_RoughnessMap == 1)
+{
+	vec4 R = texture(RoughnessMap, GPU_UV);
+	if (R[3] > 0.1f)
+	{
+		Roughness = (R[0] + R[1] + R[2]) / 3.0f;
+		RoughnessAlfa = R[3];
+	}
+}
+// Mirror light - There is no completely black surface
+float KMirror = min(0.2f, Roughness);
+
+	// 7. Compute metallic map
+	 
+// Map metallic
+float PowMetallic = 0;
+vec4 MetallicColor = vec4(0, 0, 0, 0);
+if (Enable_MetallicMap == 1)
+{
+	vec4 M = texture(MetallicMap, GPU_UV);
+    PowMetallic = M[3] * (M[0] + M[1] + M[2]) / 3.0f;
+	MetallicColor = M;
+}
+
+	// 8. Compute emissive map
+	 
+vec4 Emissive = EmissiveIntensity * EmissiveColor;
+if (Enable_EmissiveMap == 1)
+{
+	vec4 emissive = texture(EmissiveMap, GPU_UV);
+	Emissive = 255.0f * EmissiveIntensity * emissive + Color * EmissiveDefault * (1.0f - emissive[1]);
+}
+
+	// 9. Compute reflect map
+	 
+// Start normal - transform normal to space 
+vec3 ReflectColor = vec3(0, 0, 0);
+// Get normal from map
+if (Enable_ReflectMap == 1)
+{
+	// Mirror
+	// ReflectColor = texture(ReflectMap, GPU_CubeTexCoord).xyz;
+}
+else
+{
+	ReflectColor = vec3(0, 0, 0);
+}
+
+	// 10. Compute light
+	ColorPair Light = ComputeLights(Color, MetallicColor, GPU_View, FragmentNormal, GPU_Normal,
+		                            PowGlossiness, PowMetallic, Roughness, IOR_Material);
+	// 11. Integral color
+	// Influence emissive texture
+	float Influence_Emissive = 1.0f - Emissive[3] * (Emissive[0] + Emissive[1] + Emissive[2]) / 3.0f;
+	// Border function
+	if (Influence_Emissive < 0.8f)
+	{
+		Influence_Emissive = 0;
+	}
+	// Influence ambient light vec4(Color[3] * Light.Ambient * Influence_Emissive, 0.0f);
+	vec4 Influence_Ambient = vec4(Light.Ambient * Influence_Emissive, 0.0f);
+	// Influence reflect map
+	vec4 Influence_Reflect = vec4(ReflectColor[0], ReflectColor[1], ReflectColor[2], Color[3]);
+	// Influence roughness map
+	float Influence_Roughness = min(1.0f, 4.545f * Roughness);
+	// Border function
+	if (RoughnessAlfa == 0)
+	{
+		Influence_Roughness = 1.0f;
+	}
+	// Parts of color
+	vec4 OUT_Emissive = vec4(Emissive[0], Emissive[1], Emissive[2], 0);
+	vec4 OUT_Blackmirror = vec4(KMirror * Influence_Emissive * (Light.Diffuse + Light.Specular), 0);
+
+	vec4 OUT_Main = mix(vec4(1, 1, 1, Color[3]), Color, Influence_Roughness) *
+    	            vec4((1 - KMirror) * Influence_Emissive *   
+        			(Light.Diffuse + Light.Specular +
+					6 * mix(vec3(0, 0, 0), Influence_Reflect.xyz * Light.Diffuse, 1.0f - Influence_Roughness)), 1.0f) +
+		            Influence_Emissive * Color * Influence_Ambient;
+
+	// vec4 OUT_Main = mix(vec4(1, 1, 1, 1), Color, Influence_Roughness) *
+    //	                   vec4((1 - KMirror) * Influence_Emissive *   
+    //    			       (Color[3] * Light.Diffuse + Light.Specular +
+	//				       6 * mix(vec3(0, 0, 0), Color[3] * Influence_Reflect.xyz * Light.Diffuse, 1.0f - Influence_Roughness)), 1.0f) +
+	//	                   Influence_Emissive * Color * Influence_Ambient;
+	// END - Return Pixel Roughness
+	fragColor = OUT_Emissive + OUT_Blackmirror + OUT_Main;
+}
+//
+#EndShader
+
+
+

@@ -1,0 +1,3 @@
+Эта папка предназначена для векторных (ttf) и растровых шрифтов
+
+This folder is for vector (ttf) and bitmap fonts

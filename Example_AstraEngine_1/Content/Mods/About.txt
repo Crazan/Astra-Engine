@@ -1,0 +1,9 @@
+Эта папка предназначена для модов (модификаций сторонними пользователями) игры или приложения
+без наличия инструментов и исходного кода. В папку можно помещатьфайлы модели данных xml и 
+контент (текстуры и модели). Помещенные файлы будут автоматически по именам подменять основные в
+Core и Data или дополнять их (если таковых нет).
+
+This folder is for mods (modifications by third-party users) of the game or application
+without tools and source code. You can put xml data model files and
+content (textures and models). The placed files will automatically replace the main ones by their names.
+Core and Data or supplement them (if there are none).

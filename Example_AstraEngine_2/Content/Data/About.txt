@@ -1,0 +1,7 @@
+Эта папка содержит файлы .sb базы данных с контентом приложения для быстрой загрузки
+Файлы в базе автоматически подменяются на файлы из папки Mods. Можно работать без
+использования базы данных с контентом, помещая файлы текстур, моделей, звуков в папку Mods.
+
+This folder contains the database .sb files of the fast loading application content
+Files in the database are automatically replaced with files from the Mods folder. You can work without
+using a database with content by placing files of textures, models, sounds in the Mods folder.

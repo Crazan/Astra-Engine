@@ -1,0 +1,7 @@
+Эта папка предназначена для описания заставки при загрузке приложения.
+Если папка пустая заставки не будет.
+Для заставки необходимо положить в папку требуемые текстуры и описание модели данных в виде xml (см все примеры)
+
+This folder is intended to describe the splash screen when loading the application.
+If the folder is empty there will be no splash screen.
+For the splash screen, you need to put the required textures and a description of the data model in the form of xml
